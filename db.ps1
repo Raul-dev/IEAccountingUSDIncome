@@ -52,9 +52,9 @@ function IsDatabaseExists {
 	  $SqlCmd = "SET NOCOUNT ON; SELECT res=count(*) FROM sys.databases WHERE name='"+$DBname+"'"
   
 	  IF ($SQLuser.length -eq 0){
-		$DataCount1 = sqlcmd -S $ServerName  -d master  -Q $SqlCmd -h -1
+		  $DataCount1 = sqlcmd -S $ServerName  -d master  -Q $SqlCmd -h -1
 	  } else {
-		$DataCount1 = sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master  -Q $SqlCmd -h -1
+		  $DataCount1 = sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master  -Q $SqlCmd -h -1
 	  }	  
 
 	  $DataCount = $DataCount1.Trim()
@@ -83,31 +83,42 @@ IF ($RecreateDatabase ){
 Write-Host "Database name: "$DBname
 Write-Host "DB Server: "$ServerName
 
+$res = IsDatabaseExists
+IF ($res -eq 0){
+  $FolderLocation = $ProjectPath +'\db\'
+  IF (!(Test-Path $FolderLocation)){
+    Write-Host "asd"
+    New-Item -ItemType "directory" -Path $FolderLocation -ErrorAction SilentlyContinue
+    $acl = Get-Acl $FolderLocation
+    $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","Allow")
+    $acl.SetAccessRule($accessRule)
+    $acl | Set-Acl $FolderLocation
+  }
 
-$FolderLocation = $ProjectPath +'\db\'
-New-Item -ItemType "directory" -Path $FolderLocation -ErrorAction SilentlyContinue
+
+  Write-Host "local DB folder location: " $FolderLocation
+  $DefaultDataDisk = $FolderLocation.Substring(0,1) 
+  $FolderLocation = $FolderLocation.Substring(2)
 
 
-Write-Host "local DB folder location: " $FolderLocation
-$FolderLocation = $FolderLocation.Substring(2)
+  IF ($SQLuser.length -eq 0){
 
+    sqlcmd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk=$DefaultDataDisk -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
+  } else {
+    $DefaultDataDisk="C"
+    $FolderLocation="\Program Files\Microsoft SQL Server\MSSQL15.MSSQL_2019\MSSQL\DATA\"
+    $FolderLocation="\Temp\"
+    sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk="E" -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
+  }
+}  
 
-IF ($SQLuser.length -eq 0){
-
-	sqlcmd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk="E" -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
-} else {
-	$DefaultDataDisk="C"
-	$FolderLocation="\Program Files\Microsoft SQL Server\MSSQL15.MSSQL_2019\MSSQL\DATA\"
-	$FolderLocation="\Temp\"
-	sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk="E" -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
-}
-  
 
   $res = IsDatabaseExists
   IF ($res -eq 0){
-	Write-Host "Database "$DBname" did not create."
+	  Write-Host "Database "$DBname" did not create."
+    exit -1
   }else{
-	Write-Host "Database "$DBname" created successfully."
+	  Write-Host "Database "$DBname" created successfully."
   }
 
 try{
