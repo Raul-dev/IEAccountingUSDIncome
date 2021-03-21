@@ -13,7 +13,7 @@
 Param (
     [parameter(Mandatory=$false)][string]$DBname="IEAccountingUSDIncome",
     [parameter(Mandatory=$false)][string]$ServerName="localhost",
-	[parameter(Mandatory=$false)][string]$RecreateDatabase=$true,
+	  [parameter(Mandatory=$false)][string]$RecreateDatabase=$true,
     [parameter(Mandatory=$false)][string]$SQLuser="",
     [parameter(Mandatory=$false)][string]$SQLpwd=""
   )
@@ -35,7 +35,7 @@ function ApplySqlScriptFromFolder {
 			sqlcmd -S $ServerName  -d $DBname  -i $Sqlfile -h -1 | Out-Null
         } else {
 	        sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -i $Sqlfile -h -1 | Out-Null
-		}
+		    }
 	  }
 	  
   } catch { 
@@ -58,11 +58,10 @@ function IsDatabaseExists {
 	  }	  
 
 	  $DataCount = $DataCount1.Trim()
-	  Write-Host $DataCount
 	  IF ($DataCount -eq 0){
-		return 0 
+		  return 0 
 	  }else{
-		return 1 
+		  return 1 
 	  }
 	  
   } catch { 
@@ -76,7 +75,8 @@ function IsDatabaseExists {
 $ProjectPath = Convert-Path .
 
 $execps1 = $ProjectPath+"\DropDatabase.ps1"
-IF ($RecreateDatabase ){
+
+IF ($RecreateDatabase -eq $true ){
 	& $execps1 $DBname $ServerName $SQLuser $SQLpwd
 }
 
@@ -87,7 +87,6 @@ $res = IsDatabaseExists
 IF ($res -eq 0){
   $FolderLocation = $ProjectPath +'\db\'
   IF (!(Test-Path $FolderLocation)){
-    Write-Host "asd"
     New-Item -ItemType "directory" -Path $FolderLocation -ErrorAction SilentlyContinue
     $acl = Get-Acl $FolderLocation
     $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("everyone","FullControl","Allow")
@@ -110,19 +109,18 @@ IF ($res -eq 0){
     $FolderLocation="\Temp\"
     sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk="E" -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
   }
-}  
-
-
   $res = IsDatabaseExists
   IF ($res -eq 0){
 	  Write-Host "Database "$DBname" did not create."
     exit -1
   }else{
-	  Write-Host "Database "$DBname" created successfully."
+    Write-Host "Database "$DBname" created successfully."
   }
+}else{
+   Write-Host "Database "$DBname" exists."
+ }
 
 try{
-  
    
   $FolderLocation = $ProjectPath +'\Tables'
 
@@ -137,36 +135,36 @@ try{
   $SqlCmd = "EXEC [meta].[sp_InitDataBase]"
   Write-Host $SqlCmd
   IF ($SQLuser.length -eq 0){
-	sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd 
+	  sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd 
   } else {
-	sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
+	  sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
   }
   
   $FolderLocation = $ProjectPath +'\IncomeBook.xlsx'
   $SqlCmd = "INSERT [meta].[ConfigApp] (Parameter, StrValue) VALUES( 'ExcelFileIncomeBook','"+$FolderLocation+"')"
-   Write-Host $SqlCmd
+  Write-Host $SqlCmd
   IF ($SQLuser.length -eq 0){
-	sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd 
+	  sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd 
   } else {
-	sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
+	  sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
   }
 
   
   Write-Host "Start Unit Test ....]"
   IF ($SQLuser.length -eq 0){
-	sqlcmd -S $ServerName  -d $DBname  -Q "exec [uts].[usp_UnitTest]" | Out-Null
-	sqlcmd -S $ServerName  -d $DBname  -Q "SET NOCOUNT ON; SELECT * FROM (SELECT SUBSTRING(TestName,1,60) as TestName,CAST(SUBSTRING((CASE WHEN LEN(Error) = 0 THEN 'succeeded' ELSE Error END),1,10) as varchar(10)) Error,datestamp FROM [uts].[ResultUnitTest]) tmp" 
+    sqlcmd -S $ServerName  -d $DBname  -Q "exec [uts].[usp_UnitTest]" | Out-Null
+    sqlcmd -S $ServerName  -d $DBname  -Q "SET NOCOUNT ON; SELECT * FROM (SELECT SUBSTRING(TestName,1,60) as TestName,CAST(SUBSTRING((CASE WHEN LEN(Error) = 0 THEN 'succeeded' ELSE Error END),1,10) as varchar(10)) Error,datestamp FROM [uts].[ResultUnitTest]) tmp" 
   } else {
-	sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q "exec [uts].[usp_UnitTest]" | Out-Null
-	sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q "SET NOCOUNT ON; SELECT * FROM (SELECT SUBSTRING(TestName,1,60) as TestName,CAST(SUBSTRING((CASE WHEN LEN(Error) = 0 THEN 'succeeded' ELSE Error END),1,10) as varchar(10)) Error,datestamp FROM [uts].[ResultUnitTest]) tmp" 
+    sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q "exec [uts].[usp_UnitTest]" | Out-Null
+    sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q "SET NOCOUNT ON; SELECT * FROM (SELECT SUBSTRING(TestName,1,60) as TestName,CAST(SUBSTRING((CASE WHEN LEN(Error) = 0 THEN 'succeeded' ELSE Error END),1,10) as varchar(10)) Error,datestamp FROM [uts].[ResultUnitTest]) tmp" 
   }
   
   $SqlCmd = "SET NOCOUNT ON; SELECT res=count(*) FROM [uts].[ResultUnitTest] WHERE Error <> ''"
   
   IF ($SQLuser.length -eq 0){
-	$DataCount1 = sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd -h -1
+	  $DataCount1 = sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd -h -1
   } else {
-	$DataCount1 = sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd -h -1
+	  $DataCount1 = sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd -h -1
   }
   
   $DataCount = $DataCount1.Trim()
