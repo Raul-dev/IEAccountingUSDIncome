@@ -1,12 +1,12 @@
 # Accounting for russian Individual Entrepreneur with an income in USD
-An Example of data warehouse on MS-SQL Server 2019 and an example of getting USD currency rates from the site http://cbr.ru/
+An Example of data warehouse on MS-SQL Server 2019 and an example of getting USD currency rates from the  http://cbr.ru/ REST-API service
 
 1) Install MS-SQL Server 2019
-2) Instal Microsoft Access Database Engine 2010 Redistributable. https://www.microsoft.com/en-us/download/confirmation.aspx?id=13255
+2) Install Microsoft Access Database Engine 2010 Redistributable. https://www.microsoft.com/en-us/download/confirmation.aspx?id=13255
 ```
 ./AccessDatabaseEngine_X64.exe /passive
 ```
-3) Run
+3) Install database and upload sample data from IncomeBook.xlsx
 ```
  ./db.ps1
 ```
