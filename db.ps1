@@ -9,11 +9,13 @@
 #Accounting for russian Individual Entrepreneur with an income in USD
 #IEAccountingUSDIncome
 # ./db.ps1 -DBname "IEAccountingUSDIncome" -ServerName "win191c" -SQLuser "sa"  -SQLpwd "PWD123123"
-
+# ./db.ps1 -ExcelIncomeBook "D:\Work\Payment\2021\Declaration.xlsm"  -ExcelSheetCmd "'Select * from [Income$]'"
 Param (
     [parameter(Mandatory=$false)][string]$DBname="IEAccountingUSDIncome",
     [parameter(Mandatory=$false)][string]$ServerName="localhost",
-	  [parameter(Mandatory=$false)][string]$RecreateDatabase=$true,
+    [parameter(Mandatory=$false)][string]$ExcelIncomeBook="",
+    [parameter(Mandatory=$false)][string]$ExcelSheetCmd="",
+    [parameter(Mandatory=$false)][string]$RecreateDatabase=$true,
     [parameter(Mandatory=$false)][string]$SQLuser="",
     [parameter(Mandatory=$false)][string]$SQLpwd=""
   )
@@ -141,7 +143,18 @@ try{
   }
   
   $FolderLocation = $ProjectPath +'\IncomeBook.xlsx'
-  $SqlCmd = "INSERT [meta].[ConfigApp] (Parameter, StrValue) VALUES( 'ExcelFileIncomeBook','"+$FolderLocation+"')"
+  IF ($ExcelIncomeBook.length -eq 0){
+	$ExcelIncomeBook = $FolderLocation
+  }
+  IF ($ExcelSheetCmd.length -eq 0){
+	$ExcelSheetCmd = "'Select * from [Sheet1$]'"
+  }
+  
+  
+  $SqlCmd = "INSERT [meta].[ConfigApp] (Parameter, StrValue) VALUES( 'ExcelFileIncomeBook','"+$ExcelIncomeBook+"')
+             UPDATE [meta].[ConfigApp] SET 
+				StrValue = " + $ExcelSheetCmd + "
+			 WHERE Parameter = 'ExcelFileIncomeBookCmd'"
   Write-Host $SqlCmd
   IF ($SQLuser.length -eq 0){
 	  sqlcmd -S $ServerName  -d $DBname  -Q $SqlCmd 
