@@ -1,8 +1,9 @@
 # Accounting for russian Individual Entrepreneur with an income in USD
 An Example of data warehouse on MS-SQL Server 2019 and an example of getting USD currency rates from the  http://cbr.ru/ REST-API service
 
-1) Install MS-SQL Server 2019
-2) Install Microsoft Access Database Engine 2010 Redistributable. https://www.microsoft.com/en-us/download/confirmation.aspx?id=13255
+1) Install SQL Server 2019 Developer 64 bit. https://www.microsoft.com/en-us/sql-server/sql-server-downloads
+2) Install Microsoft Excel 2019 64 bit and
+Microsoft Access Database Engine 2016 Redistributable. https://www.microsoft.com/en-us/download/details.aspx?id=54920
 ```
 ./AccessDatabaseEngine_X64.exe /passive
 ```
