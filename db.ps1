@@ -9,7 +9,7 @@
 #Accounting for russian Individual Entrepreneur with an income in USD
 #IEAccountingUSDIncome
 # ./db.ps1 -DBname "IEAccountingUSDIncome" -ServerName "win191c" -SQLuser "sa"  -SQLpwd "PWD123123"
-# ./db.ps1 -ExcelIncomeBook "D:\Work\Payment\2021\Declaration.xlsm"  -ExcelSheetCmd "'Select * from [Income$]'"
+# ./db.ps1 -DBname "IEAccountinginUSD" -ExcelIncomeBook "D:\Work\Payment\2021\Declaration.xlsm"  -ExcelSheetCmd "'Select * from [Income$]'"
 Param (
     [parameter(Mandatory=$false)][string]$DBname="IEAccountingUSDIncome",
     [parameter(Mandatory=$false)][string]$ServerName="localhost",
