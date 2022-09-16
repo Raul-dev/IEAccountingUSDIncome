@@ -96,7 +96,7 @@ BEGIN TRY
 		i.[ExchangeValue], 
 		i.[ExchangeRate]
 	FROM [upload].[IncomeBook] i INNER JOIN DimDate d ON  CAST(i.Date as date) = d.FullDateAlternateKey
-		LEFT JOIN DimDate d2 ON  CAST(i.ExchangeData as date) = d2.FullDateAlternateKey
+		LEFT JOIN DimDate d2 ON  CAST(i.ExchangeDate as date) = d2.FullDateAlternateKey
 
 	SELECT @FromDate = min([DateID]),  @ToDate = max([DateID]) FROM [staging].[FactIncomeHistory]
 

@@ -73,8 +73,8 @@ BEGIN
 
 		SET @OpenRowSet='Excel 12.0;IMEX=1;HDR=YES;DATABASE=' + @ExcelFile
 		SET @sqlcmd = '
-		INSERT [upload].IncomeBook (Date, IncomeUsd, ExchangeData, ExchangeValue, ExchangeRate)
-		SELECT Date, IncomeUsd, ExchangeData, ExchangeValue, ExchangeRate FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', '''+@OpenRowSet+''','''+@ExcelFileCmd+''' )
+		INSERT [upload].IncomeBook (Date, IncomeUsd, ExchangeDate, ExchangeValue, ExchangeRate)
+		SELECT Date, IncomeUsd, ExchangeDate, ExchangeValue, ExchangeRate FROM OPENROWSET(''Microsoft.ACE.OLEDB.12.0'', '''+@OpenRowSet+''','''+@ExcelFileCmd+''' )
 		'
 		EXEC [audit].[sp_Print] @sqlcmd, @OverridePrintEnabling
 		EXEC (@sqlcmd)
