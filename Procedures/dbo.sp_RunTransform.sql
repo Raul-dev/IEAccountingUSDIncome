@@ -9,13 +9,13 @@ GO
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
-GO 
+GO
 /* 
 Example:
 [dbo].[sp_RunTransform]
 
 */
-CREATE PROC [dbo].[sp_RunTransform]
+CREATE OR ALTER PROC [dbo].[sp_RunTransform]
 	@ErrMessage	nvarchar(4000) = NULL OUTPUT
 AS
 BEGIN
@@ -86,18 +86,19 @@ BEGIN TRY
 	END
 
 	TRUNCATE TABLE [staging].[FactIncomeHistory]
-	INSERT [staging].[FactIncomeHistory]([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate])
+	INSERT [staging].[FactIncomeHistory]([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [LotOrder])
 	SELECT d.[DateID],
 		BatchID = @BatchID,
 		[IncomeUSD], 
-		[NaturalKey] = CAST (SUBSTRING(HASHBYTES ( 'SHA2_256', LTRIM(RTRIM(STR(d.[CalendarYear]))) + LTRIM(RTRIM(STR(d.[MonthNumberOfYear]))) ), 0,32) as uniqueidentifier),
-		[VersionKey] = CAST (SUBSTRING(HASHBYTES ( 'SHA2_256', LTRIM(RTRIM(STR(d.[DateID]))) + CAST([IncomeUSD] as varchar(30)) + LTRIM(RTRIM(IsNull(STR(d2.[DateID]),'null'))) + IsNull(CAST([ExchangeValue] as varchar(30)) ,'null') + IsNull(CAST([ExchangeRate] as varchar(30)) ,'null')  )  , 0,32) as uniqueidentifier),
+		[NaturalKey] = CAST (SUBSTRING(HASHBYTES ( 'SHA2_256', LTRIM(RTRIM(STR(d.[DateID]))) + '||' + LTRIM(RTRIM(STR(ROW_NUMBER() OVER ( PARTITION BY d.[DateID] ORDER BY i.ID) ))) ), 0,32) as uniqueidentifier),
+		[VersionKey] = CAST (SUBSTRING(HASHBYTES ( 'SHA2_256', LTRIM(RTRIM(STR(d.[DateID]))) + '||' + LTRIM(RTRIM(STR(ROW_NUMBER() OVER ( PARTITION BY d.[DateID] ORDER BY i.ID) ))) + '||'  + CAST([IncomeUSD] as varchar(30)) + '||' + LTRIM(RTRIM(IsNull(STR(d2.[DateID]),'null'))) + '||' + IsNull(CAST([ExchangeValue] as varchar(30)) ,'null') + '||' + IsNull(CAST([ExchangeRate] as varchar(30)) ,'null')  )  , 0,32) as uniqueidentifier),
 		[ExchangeDateID] = d2.[DateID], 
 		i.[ExchangeValue], 
-		i.[ExchangeRate]
+		i.[ExchangeRate],
+		LotOrder = ROW_NUMBER() OVER ( PARTITION BY d.[DateID] ORDER BY i.ID)
 	FROM [upload].[IncomeBook] i INNER JOIN DimDate d ON  CAST(i.Date as date) = d.FullDateAlternateKey
 		LEFT JOIN DimDate d2 ON  CAST(i.ExchangeDate as date) = d2.FullDateAlternateKey
-
+		
 	SELECT @FromDate = min([DateID]),  @ToDate = max([DateID]) FROM [staging].[FactIncomeHistory]
 
 	 --Fix deleted
@@ -109,7 +110,7 @@ BEGIN TRY
 	SET @RowCount = @@ROWCOUNT
 
 	-- Transformation
-	-- delete dublicate
+	-- delete duplicate rows FROM [staging] WHERE source.[VersionKey] = target.[VersionKey] 
 	DELETE FROM target
 	FROM [dbo].[FactIncomeHistory] as source INNER JOIN [staging].[FactIncomeHistory] as target 
 			ON source.[NaturalKey] = target.[NaturalKey] AND source.[VersionKey] = target.[VersionKey] 
@@ -122,15 +123,15 @@ BEGIN TRY
 	SET @RowCount = @@ROWCOUNT
 
 	MERGE INTO [dbo].[FactIncomeHistory] as target
-	USING (SELECT [ID], [DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [EndBatchID], CreateDate = GetDate() FROM [staging].[FactIncomeHistory]
+	USING (SELECT [ID], [DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [LotOrder], [EndBatchID], CreateDate = GetDate() FROM [staging].[FactIncomeHistory]
 			) 
-		as source ([ID], [DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [EndBatchID], CreateDate)
+		as source ([ID], [DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [LotOrder], [EndBatchID], CreateDate)
 	ON (target.ID = source.ID)
 	WHEN NOT MATCHED BY TARGET THEN 
-		INSERT ([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], CreateDate)
-		VALUES ([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], CreateDate)
+		INSERT ([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [LotOrder], CreateDate)
+		VALUES ([DateID], [BatchID], [IncomeUSD], [NaturalKey], [VersionKey], [ExchangeDateID], [ExchangeValue], [ExchangeRate], [LotOrder], CreateDate)
 	WHEN MATCHED THEN  
-	UPDATE SET  EndBatchID = source.EndBatchID , 
+	UPDATE SET  EndBatchID = source.EndBatchID ,  -- Indicates that the record is not up to date
 		[ChangeDate] = @CreateDate;
 	SET @RowCount = @@ROWCOUNT
 

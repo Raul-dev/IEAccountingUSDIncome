@@ -23,7 +23,8 @@ CREATE TABLE [staging].[FactIncomeHistory](
 	[ExchangeDateID] [int] NULL,
 	[ExchangeValue] [money] NULL,
 	[ExchangeRate] [money] NULL,
-	[EndBatchID] [int] NULL
+	[EndBatchID] [int] NULL,
+	[LotOrder] [int] NULL
 ) ON [PRIMARY]
 GO
 

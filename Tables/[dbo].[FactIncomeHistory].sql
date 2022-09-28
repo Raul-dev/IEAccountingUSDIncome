@@ -23,6 +23,7 @@ CREATE TABLE [dbo].[FactIncomeHistory](
 	[ExchangeDateID] [int] NULL,
 	[ExchangeValue] [money] NULL,
 	[ExchangeRate] [money] NULL,
+	[LotOrder] [int] NULL,
 	[EndBatchID] [int] NULL,
 	[CreateDate] [datetime] NULL,
 	[ChangeDate] [datetime] NULL,
