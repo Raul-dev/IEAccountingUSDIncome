@@ -19,7 +19,7 @@ CREATE TABLE [staging].[DimIncome](
 	[BatchID] [int] NULL,
 	[IncomeUSD] [money] NULL,
 	[NaturalKey] [uniqueidentifier] NULL,
-	[ExchangeData] [int] NULL,
+	[ExchangeDate] [int] NULL,
 	[ExchangeValue] [money] NULL,
 	[ExchangeRate] [money] NULL,
 	[CreateDate] [datetime] NULL,

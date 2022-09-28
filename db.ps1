@@ -8,10 +8,10 @@
 ##############################################################################
 #Accounting for russian Individual Entrepreneur with an income in USD
 #IEAccountingUSDIncome
-# ./db.ps1 -DBname "IEAccountingUSDIncome" -ServerName "win191c" -SQLuser "sa"  -SQLpwd "PWD123123"
-# ./db.ps1 -DBname "IEAccountinginUSD" -ExcelIncomeBook "D:\Work\Payment\2021\Declaration.xlsm"  -ExcelSheetCmd "'Select * from [Income$]'"
+# ./db.ps1 -DBname "IEAccounting_dev" -ServerName "win191c" -SQLuser "sa"  -SQLpwd "PWD123123"
+# ./db.ps1 -DBname "IEAccounting_dev" -ExcelIncomeBook "IncomeBook.xlsx"  -ExcelSheetCmd "'Select * from [Sheet1$]'"
 Param (
-    [parameter(Mandatory=$false)][string]$DBname="IEAccountingUSDIncome",
+    [parameter(Mandatory=$false)][string]$DBname="IEAccounting_dev",
     [parameter(Mandatory=$false)][string]$ServerName="localhost",
     [parameter(Mandatory=$false)][string]$ExcelIncomeBook="",
     [parameter(Mandatory=$false)][string]$ExcelSheetCmd="",
@@ -75,6 +75,27 @@ function IsDatabaseExists {
   return 0
 }
 $ProjectPath = Convert-Path .
+$FolderLocation = $ProjectPath +'\IncomeBook.xlsx'
+IF ($ExcelIncomeBook.length -eq 0){
+	$ExcelIncomeBook = $FolderLocation
+}
+Write-Host $ExcelIncomeBook
+If ([System.IO.File]::Exists($ExcelIncomeBook)) {
+  Try {
+	  $FileStream = [System.IO.File]::Open($ExcelIncomeBook,'Open','Write')
+
+	  $FileStream.Close()
+	  $FileStream.Dispose()
+  }
+  Catch {
+	  Write-Host 'Excel file exception:'
+	  Write-Host $_ -fore red
+	  exit -1
+  }
+} else {
+  Write-Host 'Excel file IncomeBook.xlsx  not exists.'
+  exit -2
+}
 
 $execps1 = $ProjectPath+"\DropDatabase.ps1"
 
@@ -104,12 +125,10 @@ IF ($res -eq 0){
 
   IF ($SQLuser.length -eq 0){
 
-    sqlcmd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk=$DefaultDataDisk -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
+    sqlcmd -S $ServerName -d master -v DatabaseName="$DBname" -i [001_CreateDatabase].sql
   } else {
-    $DefaultDataDisk="C"
-    $FolderLocation="\Program Files\Microsoft SQL Server\MSSQL15.MSSQL_2019\MSSQL\DATA\"
-    $FolderLocation="\Temp\"
-    sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d master -v DatabaseName="$DBname" -v DefaultFilePrefix="$DBname" -v DefaultDataDisk="E" -v DefaultDataPath="$FolderLocation" -v DefaultLogPath="$FolderLocation" -i [001_CreateDatabase].sql
+
+    sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName -d master -v DatabaseName="$DBname" -i [001_CreateDatabase].sql
   }
   $res = IsDatabaseExists
   IF ($res -eq 0){
@@ -142,10 +161,7 @@ try{
 	  sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
   }
   
-  $FolderLocation = $ProjectPath +'\IncomeBook.xlsx'
-  IF ($ExcelIncomeBook.length -eq 0){
-	$ExcelIncomeBook = $FolderLocation
-  }
+
   IF ($ExcelSheetCmd.length -eq 0){
 	$ExcelSheetCmd = "'Select * from [Sheet1$]'"
   }
@@ -162,7 +178,6 @@ try{
 	  sqlcmd -U $SQLuser -P $SQLpwd -S $ServerName  -d $DBname  -Q $SqlCmd 
   }
 
-  
   Write-Host "Start Unit Test ....]"
   IF ($SQLuser.length -eq 0){
     sqlcmd -S $ServerName  -d $DBname  -Q "exec [uts].[usp_UnitTest]" | Out-Null

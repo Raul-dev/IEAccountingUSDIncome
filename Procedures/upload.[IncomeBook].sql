@@ -17,7 +17,7 @@ CREATE TABLE [upload].[IncomeBook](
 	[ID] [int] IDENTITY(1,1) NOT NULL,
 	[Date] [datetime] NULL,
 	[IncomeUsd] [money] NULL,
-	[ExchangeData] [datetime] NULL,
+	[ExchangeDate] [datetime] NULL,
 	[ExchangeValue] [money] NULL,
 	[ExchangeRate] [money] NULL
 ) ON [PRIMARY]
